@@ -16,6 +16,11 @@ def fetch_city_info(city_name):
             city_link = search_results[0]["_links"]["city:item"]["href"]
             city_info_response = requests.get(city_link)
             city_info = city_info_response.json()
+
+            # Redis caching for city information
+            redis_client.hset("cities", city_name, str(city_info))
+            print(f"City information stored in Redis cache for {city_name}")
+
             return {
                 'id': city_info["geoname_id"],
                 'name': city_info["name"],
@@ -74,16 +79,15 @@ def main():
                 start_time = time.time()
                 print(f"City information retrieved from cache:\n{cached_city_info}")
                 end_time = time.time()
-                print(f"Time taken: {end_time - start_time:.2f} seconds")
+                print(f"Time taken: {end_time - start_time:.5f} seconds")
             else:
                 start_time = time.time()
                 city_info = fetch_city_info(city_name)
                 end_time = time.time()
 
                 if city_info:
-                    redis_client.hset("cities", city_name, str(city_info))
                     print(f"City information retrieved from API:\n{city_info}")
-                    print(f"Time taken: {end_time - start_time:.2f} seconds")
+                    print(f"Time taken: {end_time - start_time:.5f} seconds")
                 else:
                     print("City not found.")
 
@@ -105,7 +109,7 @@ def main():
                 display_quality_of_life(urban_area)
                 end_time = time.time()
 
-                print(f"Time taken: {end_time - start_time:.2f} seconds")
+                print(f"Time taken: {end_time - start_time:.5f} seconds")
 
             else:
                 print("Unable to retrieve the list of urban areas.")
@@ -114,7 +118,7 @@ def main():
             start_time = time.time()
             show_cached_cities()
             end_time = time.time()
-            print(f"Time taken: {end_time - start_time:.2f} seconds")
+            print(f"Time taken: {end_time - start_time:.5f} seconds")
 
         elif choice == '4':
             confirm = input("Are you sure you want to clear the cache? (y/n): ")
@@ -123,7 +127,7 @@ def main():
                 redis_client.delete("cities")  # Clear the cache
                 end_time = time.time()
                 print("Cache cleared.")
-                print(f"Time taken: {end_time - start_time:.2f} seconds")
+                print(f"Time taken: {end_time - start_time:.5f} seconds")
             else:
                 print("Cache not cleared.")
 
