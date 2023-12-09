@@ -20,9 +20,7 @@ def fetch_city_info(city_name):
                 'id': city_info["geoname_id"],
                 'name': city_info["name"],
                 'coordinates': city_info["location"]["latlon"],
-                'population': city_info["population"],
-                'timezone': city_info["timezone"]["name"],
-                'country': city_info["_links"]["city:country"]["name"]
+                'population': city_info["population"]
             }
 
     return None
@@ -50,8 +48,9 @@ def display_quality_of_life(urban_area_name):
 def display_menu():
     print("1. Fetch City Information")
     print("2. Fetch Quality of Life Scores")  
-    print("3. Show Cached Cities")           
-    print("4. Exit")
+    print("3. Show Cached Cities")
+    print("4. Clear Cache")  
+    print("5. Exit")
 
 def show_cached_cities():
     cached_cities = redis_client.hkeys("cities")
@@ -72,7 +71,10 @@ def main():
             cached_city_info = redis_client.hget("cities", city_name)
 
             if cached_city_info:
+                start_time = time.time()
                 print(f"City information retrieved from cache:\n{cached_city_info}")
+                end_time = time.time()
+                print(f"Time taken: {end_time - start_time:.2f} seconds")
             else:
                 start_time = time.time()
                 city_info = fetch_city_info(city_name)
@@ -89,26 +91,43 @@ def main():
             url = f"{teleport_base_url}urban_areas/"
             response = requests.get(url)
             data = response.json()
-            
+
             if "_links" in data and "ua:item" in data["_links"]:
                 urban_areas = [item["name"] for item in data["_links"]["ua:item"]]
                 print("List of Urban Areas:")
                 for area in urban_areas:
                     print(area)
-                #ask for input of urban area
+
                 urban_area = input("Enter the name of the urban area you want to fetch: ")
-                #convert to lower cases
                 urban_area = urban_area.lower()
-                #fetch quality of life scores
+
+                start_time = time.time()
                 display_quality_of_life(urban_area)
+                end_time = time.time()
+
+                print(f"Time taken: {end_time - start_time:.2f} seconds")
 
             else:
                 print("Unable to retrieve the list of urban areas.")
-            
+
         elif choice == '3':
+            start_time = time.time()
             show_cached_cities()
+            end_time = time.time()
+            print(f"Time taken: {end_time - start_time:.2f} seconds")
 
         elif choice == '4':
+            confirm = input("Are you sure you want to clear the cache? (y/n): ")
+            if confirm.lower() == 'y':
+                start_time = time.time()
+                redis_client.delete("cities")  # Clear the cache
+                end_time = time.time()
+                print("Cache cleared.")
+                print(f"Time taken: {end_time - start_time:.2f} seconds")
+            else:
+                print("Cache not cleared.")
+
+        elif choice == '5':
             print("Exiting the program.")
             break
 
@@ -117,5 +136,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
