@@ -18,17 +18,18 @@ def fetch_city_info(city_name):
             city_info = city_info_response.json()
 
             # Redis caching for city information
-            redis_client.hset("cities", city_name, str(city_info))
-            print(f"City information stored in Redis cache for {city_name}")
-
-            return {
+            ret = {
                 'id': city_info["geoname_id"],
                 'name': city_info["name"],
                 'coordinates': city_info["location"]["latlon"],
                 'population': city_info["population"]
             }
 
-    return None
+            redis_client.hset("cities", str.lower(city_name), str(ret))
+            print(f"City information stored in Redis cache for {city_name}")
+
+            return ret
+    return
 
 def fetch_quality_of_life(urban_area_name):
     url = f"{teleport_base_url}urban_areas/slug:{urban_area_name}/scores/"
@@ -51,10 +52,11 @@ def display_quality_of_life(urban_area_name):
 
 
 def display_menu():
+    print("\n#############################################################")
     print("1. Fetch City Information")
-    print("2. Fetch Quality of Life Scores")  
+    print("2. Fetch Quality of Life Scores")
     print("3. Show Cached Cities")
-    print("4. Clear Cache")  
+    print("4. Clear Cache")
     print("5. Exit")
 
 def show_cached_cities():
@@ -69,16 +71,17 @@ def show_cached_cities():
 def main():
     while True:
         display_menu()
-        choice = input("Enter your choice (1-4): ")
+        choice = input("Enter your choice (1-5): ")
+        print()
 
         if choice == '1':
             city_name = input("Enter the name of the city: ")
-            cached_city_info = redis_client.hget("cities", city_name)
+            start_time = time.time()
+            cached_city_info = redis_client.hget("cities", str.lower(city_name))
+            end_time = time.time()
 
             if cached_city_info:
-                start_time = time.time()
                 print(f"City information retrieved from cache:\n{cached_city_info}")
-                end_time = time.time()
                 print(f"Time taken: {end_time - start_time:.5f} seconds")
             else:
                 start_time = time.time()
@@ -105,7 +108,7 @@ def main():
                 urban_area = input("Enter the name of the urban area you want to fetch: ")
                 urban_area = urban_area.lower()
 
-                start_time = time.time()
+                start_time = time.time()  # Note: This isn't an absolutely fair comparison of time for choice 2 but it still demonstrates our point.
                 display_quality_of_life(urban_area)
                 end_time = time.time()
 
@@ -136,7 +139,7 @@ def main():
             break
 
         else:
-            print("Invalid choice. Please enter a number between 1 and 4.")
+            print("Invalid choice. Please enter a number between 1 and 5.")
 
 if __name__ == "__main__":
     main()
@@ -146,13 +149,13 @@ Title: Weather & Quality of Life Explorer
 
 Background Story:
 
-Welcome to the Weather & Quality of Life Explorer, 
-an innovative application that empowers users to explore cities around the world 
+Welcome to the Weather & Quality of Life Explorer,
+an innovative application that empowers users to explore cities around the world
 and make informed decisions about where to live or visit based on weather conditions and quality of life scores.
 
-In the vast landscape of city data available through the Teleport API, 
-we encountered a challenge—fetching and displaying information quickly and efficiently. 
-This is where Redis, our secret weapon, comes into play. Redis is a high-performance, 
+In the vast landscape of city data available through the Teleport API,
+we encountered a challenge—fetching and displaying information quickly and efficiently.
+This is where Redis, our secret weapon, comes into play. Redis is a high-performance,
 in-memory data store that acts as a cache for frequently accessed city information.
 
 How Redis Enhances Performance:
@@ -166,11 +169,11 @@ Reduced API Calls:
 
 Redis eliminates the need for redundant API calls by storing previously fetched city data.
 When a user revisits a city, the application retrieves the information from Redis instead of making a time-consuming API call.
-This not only speeds up the user experience but also reduces the load on the Teleport API, 
+This not only speeds up the user experience but also reduces the load on the Teleport API,
 contributing to better overall system efficiency.
 Improved Responsiveness:
 
-Clearing the cache is a breeze with the option to 'Clear Cache' in the menu. 
+Clearing the cache is a breeze with the option to 'Clear Cache' in the menu.
 This ensures that users always get the latest information when needed.
 The time taken to clear the cache is optimized, making the application responsive and reliable.
 User Scenario:
@@ -195,8 +198,8 @@ You decide to clear the cache to ensure you are always getting the latest data.
 Redis efficiently handles cache clearance, maintaining the application's high responsiveness.
 Conclusion:
 
-The Weather & Quality of Life Explorer, powered by Redis, delivers a user-friendly and efficient experience. 
-Redis's caching capabilities significantly enhance performance, making city exploration a breeze. 
-Whether you are a potential resident or a curious traveler, 
+The Weather & Quality of Life Explorer, powered by Redis, delivers a user-friendly and efficient experience.
+Redis's caching capabilities significantly enhance performance, making city exploration a breeze.
+Whether you are a potential resident or a curious traveler,
 Redis ensures that you have the most up-to-date and accessible information at your fingertips.
 """
