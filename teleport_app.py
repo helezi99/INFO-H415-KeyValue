@@ -1,6 +1,7 @@
 import requests
 import redis
 import time
+import json
 
 redis_client = redis.StrictRedis(host='localhost', port=6379, decode_responses=True)
 teleport_base_url = 'https://api.teleport.org/api/'
@@ -32,14 +33,40 @@ def fetch_city_info(city_name):
     return
 
 def fetch_quality_of_life(urban_area_name):
-    url = f"{teleport_base_url}urban_areas/slug:{urban_area_name}/scores/"
-    response = requests.get(url)
-    data = response.json()
+    # Convert to lowercase for consistency
+    urban_area_name = urban_area_name.lower()
 
-    if "categories" in data:
-        return data["categories"]
+    # Check if the data is already in the cache
+    cached_quality_of_life = redis_client.hget("quality_of_life", urban_area_name)
+    
+    if cached_quality_of_life:
+        print(f"Quality of Life Scores retrieved from cache for {urban_area_name}")
+        try:
+            return json.loads(cached_quality_of_life)  # Deserialize the cached data
+        except json.decoder.JSONDecodeError:
+            print(f"Error decoding JSON for {urban_area_name}. Removing invalid data from cache.")
+            redis_client.hdel("quality_of_life", urban_area_name)
+            return None
     else:
-        return None
+        url = f"{teleport_base_url}urban_areas/slug:{urban_area_name}/scores/"
+        response = requests.get(url)
+        data = response.json()
+
+        if "categories" in data:
+            quality_of_life_scores = data["categories"]
+
+            # Store the data in the cache
+            try:
+                redis_client.hset("quality_of_life", urban_area_name, json.dumps(quality_of_life_scores))  # Serialize before storing
+                print(f"Quality of Life Scores stored in Redis cache for {urban_area_name}")
+            except json.decoder.JSONDecodeError:
+                print(f"Error encoding JSON for {urban_area_name}. Data not stored in cache.")
+
+            return quality_of_life_scores
+        else:
+            return None
+
+
 
 def display_quality_of_life(urban_area_name):
     quality_of_life_scores = fetch_quality_of_life(urban_area_name)
@@ -59,14 +86,61 @@ def display_menu():
     print("4. Clear Cache")
     print("5. Exit")
 
-def show_cached_cities():
-    cached_cities = redis_client.hkeys("cities")
-    if cached_cities:
-        print("Cached Cities:")
-        for city in cached_cities:
-            print(city)
+def show_cached_data():
+    cached_cities = redis_client.hgetall("cities")
+    cached_quality_of_life = redis_client.hgetall("quality_of_life")
+
+    if cached_cities or cached_quality_of_life:
+        print("Cached Data:")
+        for city_name, city_info in cached_cities.items():
+            print(f"City: {city_name}")
+            print(f"City Information: {city_info}")
+
+        for urban_area_name, quality_of_life_scores in cached_quality_of_life.items():
+            print(f"Urban Area: {urban_area_name}")
+            print(f"Quality of Life Scores: {quality_of_life_scores}")
     else:
-        print("No cities cached.")
+        print("No data cached.")
+
+def get_cached_data():
+    cached_cities = redis_client.hgetall("cities")
+    cached_quality_of_life = redis_client.hgetall("quality_of_life")
+
+    if cached_cities or cached_quality_of_life:
+        return cached_cities, cached_quality_of_life
+    else:
+        return None, None
+
+def show_cached_cities():
+    start_time = time.time()
+    cached_cities, cached_quality_of_life = get_cached_data()
+
+    if cached_cities or cached_quality_of_life:
+        print("Cached Data:")
+        for city_name, city_info in cached_cities.items():
+            print(f"City: {city_name}")
+            print(f"City Information: {city_info}")
+
+        for urban_area_name, quality_of_life_scores in cached_quality_of_life.items():
+            print(f"Urban Area: {urban_area_name}")
+            print(f"Quality of Life Scores: {quality_of_life_scores}")
+    else:
+        print("No data cached.")
+
+    end_time = time.time()
+    print(f"Time taken: {end_time - start_time:.5f} seconds")
+
+def clear_cache():
+    confirm = input("Are you sure you want to clear the cache? (y/n): ")
+    if confirm.lower() == 'y':
+        start_time = time.time()
+        redis_client.delete("cities")  # Clear the city information cache
+        redis_client.delete("quality_of_life")  # Clear the quality of life cache
+        end_time = time.time()
+        print("Cache cleared.")
+        print(f"Time taken: {end_time - start_time:.5f} seconds")
+    else:
+        print("Cache not cleared.")
 
 def main():
     while True:
@@ -108,31 +182,26 @@ def main():
                 urban_area = input("Enter the name of the urban area you want to fetch: ")
                 urban_area = urban_area.lower()
 
-                start_time = time.time()  # Note: This isn't an absolutely fair comparison of time for choice 2 but it still demonstrates our point.
-                display_quality_of_life(urban_area)
+                start_time = time.time()
+                quality_of_life_scores = fetch_quality_of_life(urban_area)
                 end_time = time.time()
 
-                print(f"Time taken: {end_time - start_time:.5f} seconds")
+                if quality_of_life_scores:
+                    print("Quality of Life Scores:")
+                    for category in quality_of_life_scores:
+                        print(f"{category['name']}: {category['score_out_of_10']}")
+                    print(f"Time taken: {end_time - start_time:.5f} seconds")
+                else:
+                    print("Quality of life scores not available.")
 
             else:
                 print("Unable to retrieve the list of urban areas.")
 
         elif choice == '3':
-            start_time = time.time()
             show_cached_cities()
-            end_time = time.time()
-            print(f"Time taken: {end_time - start_time:.5f} seconds")
 
         elif choice == '4':
-            confirm = input("Are you sure you want to clear the cache? (y/n): ")
-            if confirm.lower() == 'y':
-                start_time = time.time()
-                redis_client.delete("cities")  # Clear the cache
-                end_time = time.time()
-                print("Cache cleared.")
-                print(f"Time taken: {end_time - start_time:.5f} seconds")
-            else:
-                print("Cache not cleared.")
+            clear_cache()
 
         elif choice == '5':
             print("Exiting the program.")
