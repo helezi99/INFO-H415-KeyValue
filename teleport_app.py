@@ -27,7 +27,7 @@ def fetch_city_info(city_name):
             }
 
             redis_client.hset("cities", str.lower(city_name), str(ret))
-            redis_client.expire("cities", 60)  # Set expiration time to 60 seconds
+            redis_client.expire("cities", 60)  # Set expiration time to 60 seconds (time to live - TTL)
             print(f"City information stored in Redis cache for {city_name}")
 
             return ret
