@@ -59,7 +59,7 @@ def fetch_quality_of_life(urban_area_name):
             # Store the data in the cache
             try:
                 redis_client.hset("quality_of_life", urban_area_name, json.dumps(quality_of_life_scores))  # Serialize before storing
-                redis_client.expire("quality_of_life", 60)  # Set expiration time to 60 seconds
+                redis_client.expire("quality_of_life", 60)  # Set expiration time to 60 seconds (time to live - TTL)
                 print(f"Quality of Life Scores stored in Redis cache for {urban_area_name}")
             except json.decoder.JSONDecodeError:
                 print(f"Error encoding JSON for {urban_area_name}. Data not stored in cache.")
