@@ -1,10 +1,23 @@
-# advancedDB-keyValue
-INFOH415 Advanced Databases Project
 
-Title: Weather & Quality of Life Explorer
+# Key Value Databases Project
+
+INFOH415 - Advanced databses (2023/24) - ULB <br />
+
+<div align="center">
+    <img src="https://actus.ulb.be/medias/photo/logo-universite-libre-bruxelles_1661952138925-png?ID_FICHE=19524" alt="ULB Logo" width="300"/>
+</div>
+
+<br>
+
+## Background
+The choice of the right database management system technology is crucial for the success of any application. Key value store databases have gained prominence for their efficiency in storing and retrieving objects in a simple way, they are nowadays present in the mostdiverse scenarios.
+
+## Motivation and Objective of the Project
+The goal of our project is to simulate a design decision: which Database Management System (DBMS) should be used for a certain application. To do so, we will be comparing two different technologies: traditional relational databases and key-value stores. Our objective is to prove that our chosen technology is the best for this application. Additionally, we will provide arguments for the design decisions as well as a performance benchmarkofthethree database systems being compared.
+
+## Small Demo: Weather & Quality of Life Explorer
 
 Background Story:
-
 Welcome to the Weather & Quality of Life Explorer,
 an sample application that helps users to explore cities around the world
 and make informed decisions about where to live or visit based on weather conditions and quality of life scores.
